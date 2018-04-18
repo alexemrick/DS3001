@@ -1,6 +1,9 @@
 import tbapy
 import pandas as pd
 import json
+from datetime import datetime
+import numpy
+
 import numpy as np
 tba = tbapy.TBA('az3CfBMqtHsElcAwN9pdsjAlIVVHUTCcVPjYRBjPnCQOFqwZ6y9raUnmXXOhQiP7')
 ###############INITIAL DATA COLLECTION######################
@@ -117,7 +120,29 @@ tba = tbapy.TBA('az3CfBMqtHsElcAwN9pdsjAlIVVHUTCcVPjYRBjPnCQOFqwZ6y9raUnmXXOhQiP
 all_teams = pd.read_csv('all_teams.csv')
 events = all_teams['events'].values
 events = map(eval, events)
-
+week0Events = tba.events(2018)
+week0Events = json.dumps(week0Events)
+week0Events = pd.read_json(week0Events)
+event_codes = week0Events['event_code']
+# event_codes= event_codes.values
+end_dates = week0Events['end_date']
+# end_dates = end_dates.values
+# week0Events = week0Events['event_code', 'end_date']
+realEvents = pd.concat([end_dates, event_codes], axis=1)
+realEvents.columns = ['end_date', 'event_code']
+realEvents['end_date'] = realEvents['end_date'].apply(lambda x: pd.to_datetime(x, infer_datetime_format=True))
+week1Start = datetime(2018,2,28)
+realEvents = realEvents[realEvents['end_date']>week1Start]
+realEvents = realEvents.sort_values(by=['end_date'])
+realEvents = realEvents['event_code'].values
+all_events = []
+for event in realEvents:
+    event = "2018"+str(event)
+    all_events.append(event)
+all_events = pd.DataFrame(all_events)
+all_events.columns = ['event_code']
+print(all_events)
+all_events.to_csv('2018events.csv')
 event_ranking = tba.event_rankings('2018miket')
-event_ranking = json.dumps(event_ranking, indent=4, sort_keys=True)
-
+#event_ranking = json.dumps(event_ranking, indent=4, sort_keys=True)
+print(event_ranking)
