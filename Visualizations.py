@@ -9,8 +9,7 @@ import gmaps.datasets
 import gmaps.datasets
 import tbapy
 import json
-%matplotlib inline
-
+%matplotlib inline  
 
 tba = tbapy.TBA('az3CfBMqtHsElcAwN9pdsjAlIVVHUTCcVPjYRBjPnCQOFqwZ6y9raUnmXXOhQiP7')
 gmaps.configure(api_key='AIzaSyANJiID5KLBVzBS0molpB6BCkSQOVhIKDM')
@@ -46,46 +45,64 @@ stateCoords = [['Alabama', 32.806671, -86.791130], ['Arizona', 34.729759, -111.4
 values = [10, 20, 40, 25, 15, 7, 30, 22, 12, 9, 10, 20, 40, 25, 15, 7, 30, 22, 12, 9, 10, 20, 40, 25, 15, 7, 30, 22, 12, 9,
          10, 20, 40, 25, 15, 7, 30, 22, 12, 9, 10, 20, 40, 25, 15, 7, 30, 22, 12, 9]
 
+allData = pandas.read_csv("all_data.csv")
+champs = pandas.read_csv("champsTeams.csv")
+states = pandas.DataFrame( allData["state_prov"])
+states = states.rename(index=str, columns={"state_prov": "State"})
+champs = champs.rename(index=str, columns={"state_prov": "State"})
+# print(states)
 
-#########################################################################
+#group the data by state and get the count
+state2 = pandas.DataFrame({'count' : states.groupby( ["State"] ).size()})
+champs2 = pandas.DataFrame({'champ count': champs.groupby(["State"]).size()})
+
+# display(HTML(state2.to_html()))
+print(champs2)
+
 
 data = pandas.DataFrame(stateCoords, columns=['State', 'Latitude', 'Longitude'])
+data = data.set_index('State')
+
+# display(HTML(data.to_html()))
+
 value = pandas.DataFrame(values, columns=['Size'])
-result = pandas.concat([data, value], axis=1, join='inner')
+result = data.join(state2)
+result = result.join(champs2)
+result = result.fillna(0)
 
 display(HTML(result.to_html()))
 
-
 fig = gmaps.figure(layout = figure_US)
 
-r = 255
-g = 0
-b = 0
+maxNum = result['champ count'].max()
 
 for index, row in result.iterrows():
     
-    temp = pandas.DataFrame([[row[1], row[2]]])
-    size = int(row[3])
+    location = pandas.DataFrame([[row[0], row[1]]])
+    
+    size = int(row[2] / 5)
+    if size == 0:
+        size = 1
+        
+    champ = row[3]
+    newValue = int((champ * 255) / maxNum)
+    
+    r = newValue
+    g = 0
+    b = 255 - newValue
 
     string1 = ('rgba(%d, %d, %d, 0.7)'% (r, g, b))
     string2 = ('rgba(%d, %d, %d, 0)'% (r, g, b))
     
     kfc_layer = gmaps.symbol_layer(
-        temp, fill_color=string1,
+        location, fill_color=string1,
         stroke_color=string2, scale=size
     )
     
-    r = r - 4
-    g = g + 2
-    b = b + 4
+    
     fig.add_layer(kfc_layer)
     
 fig
-
-
-
-####################################################################
-
 
 event_ranking = tba.event_rankings('2018miket')
 event_ranking = json.dumps(event_ranking, indent=4, sort_keys=True)
@@ -96,14 +113,6 @@ keys = obj.keys()
 # print (obj)
 all_ranks = obj['rankings']
 
-# print (len(obj['rankings']))
-# rankings = json.loads(obj['rankings'])
-# print (rankings.keys())
-
-
-"""
-What Tom wants: losses, wins, ties and the extra stats number
-"""
 all_losses = []
 all_wins = []
 all_ties = []
@@ -133,8 +142,6 @@ df = pandas.DataFrame(
 print(df)
 df.to_csv("TeamStatistics.csv", index=False)
 
-
-#################################################################3
 # generate random matrix
 num_rows = 500
 num_cols = 10
