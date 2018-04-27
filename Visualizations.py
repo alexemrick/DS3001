@@ -160,3 +160,21 @@ cols = [str(i) for i in cols]
 net.load_df(df[['Ranking Points', 'Losses', 'Ties', 'Wins']])
 net.cluster(enrichrgram=False)
 net.widget()
+
+
+
+
+df = pd.read_csv('all_data.csv')
+df = df[['team_number','OPR', 'CCWM', 'ClimbPoints', 'AutoPoints', 'OwnershipPoints', 'VaultPoints' ]]
+from sklearn import preprocessing
+x = test.values #returns a numpy array
+print x.shape
+min_max_scaler = preprocessing.MinMaxScaler()
+x_scaled = min_max_scaler.fit_transform(x)
+df = pd.DataFrame(x_scaled)
+df.head()
+team_name = pd.DataFrame(team_name)
+team_name.shape
+result = pd.concat([team_name, df], axis=1)
+cos = euclidean_distances(result)
+x_normed = cos / cos.max(axis=0)
