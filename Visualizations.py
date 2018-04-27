@@ -9,6 +9,9 @@ import gmaps.datasets
 import gmaps.datasets
 import tbapy
 import json
+from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
+import seaborn as sns
+from clustergrammer_widget import *
 %matplotlib inline  
 
 tba = tbapy.TBA('az3CfBMqtHsElcAwN9pdsjAlIVVHUTCcVPjYRBjPnCQOFqwZ6y9raUnmXXOhQiP7')
@@ -45,11 +48,12 @@ stateCoords = [['Alabama', 32.806671, -86.791130], ['Arizona', 34.729759, -111.4
 values = [10, 20, 40, 25, 15, 7, 30, 22, 12, 9, 10, 20, 40, 25, 15, 7, 30, 22, 12, 9, 10, 20, 40, 25, 15, 7, 30, 22, 12, 9,
          10, 20, 40, 25, 15, 7, 30, 22, 12, 9, 10, 20, 40, 25, 15, 7, 30, 22, 12, 9]
 
+
 allData = pandas.read_csv("all_data.csv")
-champs = pandas.read_csv("champsTeams.csv")
+champTeams = pandas.read_csv("champsTeams.csv")
 states = pandas.DataFrame( allData["state_prov"])
 states = states.rename(index=str, columns={"state_prov": "State"})
-champs = champs.rename(index=str, columns={"state_prov": "State"})
+champs = champTeams.rename(index=str, columns={"state_prov": "State"})
 # print(states)
 
 #group the data by state and get the count
@@ -104,77 +108,63 @@ for index, row in result.iterrows():
     
 fig
 
-event_ranking = tba.event_rankings('2018miket')
-event_ranking = json.dumps(event_ranking, indent=4, sort_keys=True)
-# print (event_ranking[1])
+teamData = allData[["key", "OPR", "DPR", "CCWM", "RankingPoints", "Wins", "Losses", "Ties"]]
+teamData = teamData.set_index("key")
 
-obj = json.loads(event_ranking)
-keys = obj.keys()
-# print (obj)
-all_ranks = obj['rankings']
+# print(champTeams)
+champKey = champTeams.set_index("key")
 
-all_losses = []
-all_wins = []
-all_ties = []
-all_team_key = []
-all_extra_stats_no = []
+final = champKey.join(teamData)
+final = final[["OPR", "DPR", "CCWM", "RankingPoints", "Wins", "Losses", "Ties"]]
 
-for objects in all_ranks:
-    # print (objects['team_key'])
-    # print (objects['team_key'])
-    all_team_key.append(objects['team_key'])
-    all_extra_stats_no.append(objects['extra_stats'][0])
-    all_wins.append(objects['record']['wins'])
-    all_losses.append(objects['record']['losses'])
-    all_ties.append(objects['record']['ties'])
+print(final)
 
-# print (all_team_key)
-print(all_extra_stats_no)
-# print (all_wins)
-# print (all_ties)
-# print (all_losses)
+net = Network(clustergrammer_widget)
 
-df = pandas.DataFrame(
-    np.column_stack([all_extra_stats_no, all_wins, all_losses, all_ties]),
-     index = all_team_key,
-     columns = ['Ranking Points', 'Wins', 'Losses', 'Ties']
-    )
-print(df)
-df.to_csv("TeamStatistics.csv", index=False)
-
-# generate random matrix
-num_rows = 500
-num_cols = 10
-np.random.seed(seed=100)
-mat = np.random.rand(num_rows, num_cols)
-
-# make row and col labels
-rows = range(num_rows)
-cols = range(num_cols)
-rows = [str(i) for i in rows]
-cols = [str(i) for i in cols]
-
-# make dataframe 
-# df = pandas.DataFrame(data=mat, columns=cols, index=rows)
-
-net.load_df(df[['Ranking Points', 'Losses', 'Ties', 'Wins']])
+net.load_df(final[["CCWM", "RankingPoints", "Wins", "Ties"]])
 net.cluster(enrichrgram=False)
 net.widget()
 
+df = pandas.read_csv('all_data.csv')
+df = df[['key','OPR', 'CCWM', 'ClimbPoints', 'AutoPoints', 'OwnershipPoints', 'VaultPoints' ]]
+champsTeamList = pandas.read_csv('champsTeams.csv')
+champsTeamList = champsTeamList['key'].values
+df = df[df['key'].isin(champsTeamList)]
+df = df.set_index('key')
+keyValues = df.index.values
+print(keys)
+print(df)
+cols = list(df)
+test = df[cols[1:]]
+print(test.shape)
 
-
-
-df = pd.read_csv('all_data.csv')
-df = df[['team_number','OPR', 'CCWM', 'ClimbPoints', 'AutoPoints', 'OwnershipPoints', 'VaultPoints' ]]
 from sklearn import preprocessing
-x = test.values #returns a numpy array
-print x.shape
+x = df.values #returns a numpy array
+print(x.shape)
 min_max_scaler = preprocessing.MinMaxScaler()
 x_scaled = min_max_scaler.fit_transform(x)
-df = pd.DataFrame(x_scaled)
-df.head()
-team_name = pd.DataFrame(team_name)
-team_name.shape
-result = pd.concat([team_name, df], axis=1)
+result= pandas.DataFrame(x_scaled)
+print(result.head())
+#team_name = pandas.DataFrame(team_name)
+#print(team_name.shape)
+#result = pandas.concat([team_name, df], axis=1)
+#print(df.columns)
+#result = result.set_index('key')
+#print(df.head())
 cos = euclidean_distances(result)
 x_normed = cos / cos.max(axis=0)
+print(cos)
+
+keys = pandas.Series(keyValues)
+keys = keys.rename('key')
+frame = pandas.DataFrame(cos, columns=keyValues )
+
+
+# print(keys.head)
+frame = pandas.concat([frame,keys], axis=1)
+frame = frame.set_index('key')
+print(frame)
+
+net.load_df(frame[:100])
+net.cluster(enrichrgram=False)
+net.widget()
