@@ -86,14 +86,26 @@ tba = tbapy.TBA('az3CfBMqtHsElcAwN9pdsjAlIVVHUTCcVPjYRBjPnCQOFqwZ6y9raUnmXXOhQiP
 #
 # print(statistics)
 # statistics.to_csv("TeamStatistics.csv", index=False )
+#
+# statistics = pd.read_csv('TeamStatistics.csv')
+# statistics = statistics.groupby(["TeamKey"]).mean()
+# teams = pd.read_csv('all_teams.csv')
+# teams = teams.set_index('key')
+# teams = teams.join(statistics)
+# teams = teams.dropna()
+# teams.to_csv("all_data.csv")
+#
+champs = ['2018tur','2018hop','2018gal','2018roe','2018carv','2018new','2018arc','2018cars','2018cur','2018tes','2018dar','2018dal']
+champsTeams = []
+for division in champs:
+    teams = tba.event_teams(division)
+    teams = json.dumps(teams)
+    teams = pd.read_json(teams)
+    champsTeams.append(teams)
 
-statistics = pd.read_csv('TeamStatistics.csv')
-statistics = statistics.groupby(["TeamKey"]).mean()
-teams = pd.read_csv('all_teams.csv')
-teams = teams.set_index('key')
-teams = teams.join(statistics)
-teams = teams.dropna()
-teams.to_csv("all_data.csv")
-
-
-
+goodTeams = pd.concat(champsTeams, ignore_index=True)
+print(goodTeams.columns)
+goodTeams = goodTeams[['key','state_prov']]
+goodTeams = goodTeams.set_index('key')
+goodTeams.to_csv("champsTeams.csv")
+print(goodTeams.head)
